@@ -56,14 +56,25 @@ UI.tab({
 
     // ---- settings ----
     const sound = UI.switch((v) => api.setPhone({ sound: v }), { label: 'Phone sound' });
+    const resolution = UI.select([
+      { value: '1024', label: 'Ultra-low latency (1024p — fastest)' },
+      { value: '1280', label: 'Low latency (1280p — recommended)' },
+      { value: '1600', label: 'Balanced (1600p)' },
+      { value: '1920', label: 'High quality (1920p)' },
+      { value: '0', label: 'Native (Full phone resolution)' },
+    ], (v) => api.setPhone({ maxSize: Number(v) }));
     const quality = UI.select([
-      { value: '4', label: 'Data saver (4 Mb/s)' }, { value: '8', label: 'Balanced (8 Mb/s)' },
-      { value: '16', label: 'Sharp (16 Mb/s)' }, { value: '24', label: 'Sharpest (24 Mb/s)' },
+      { value: '4', label: 'Fast (4 Mb/s)' },
+      { value: '6', label: 'Smooth (6 Mb/s)' },
+      { value: '8', label: 'Balanced (8 Mb/s)' },
+      { value: '16', label: 'Sharp (16 Mb/s)' },
+      { value: '24', label: 'Sharpest (24 Mb/s)' },
     ], (v) => api.setPhone({ bitrateMbps: Number(v) }));
     const wall = UI.switch((v) => api.setPhone({ wallpaper: v }), { label: 'Wallpaper' });
     const optsCard = UI.card('Settings', [
       UI.row('Phone sound in the screen window', 'Android 11 or later', [sound]),
-      UI.row('Picture', 'For the screen window and app windows', [quality]),
+      UI.row('Resolution & Latency', 'Downscaling reduces encoding delay and input lag', [resolution]),
+      UI.row('Picture bitrate', 'Video bandwidth for the screen window and apps', [quality]),
       UI.row('Show the phone’s wallpaper here', 'Lets TwinDesk on the phone read it (set up over wireless debugging)', [wall]),
       UI.row('Mouse and keyboard', 'Push the pointer off the edge of the screen to use the phone. Double-tap the hotkey to come back.', [UI.button('Cursor Settings', () => UI.go('cursor'), 'small')]),
     ]);
@@ -120,6 +131,7 @@ UI.tab({
 
       const settings = ph.settings || {};
       sound.set(!!settings.sound);
+      resolution.set(String(settings.maxSize != null ? settings.maxSize : 1280));
       quality.set(String(settings.bitrateMbps || 8));
       wall.set(settings.wallpaper !== false);
 

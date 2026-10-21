@@ -21,13 +21,13 @@
   let decoder = null;
   let config = null; // SPS/PPS, sent in front of the next key frame
   let waitingKey = true;
-  // Skip to the next keyframe, and ask the phone for one now (it sends one only every ~10 s):
-  // the frames in between build on each other, so drawing them on a gap smears the picture.
+  // Skip to the next keyframe, and ask the phone for one now:
   let askedKey = 0;
-  function needKey() {
+  let backlogFrames = 0;
+  function needKey(force = false) {
     waitingKey = true;
     const now = performance.now();
-    if (now - askedKey < 1000) return;
+    if (!force && now - askedKey < 1000) return;
     askedKey = now;
     api.send({ t: 'resetVideo' });
   }
@@ -80,16 +80,40 @@
       return;
     }
     if (!decoder || decoder.state !== 'configured') return;
-    if (waitingKey && !p.key) return needKey();
-    // Behind (a slow decoder): drop up to a fresh keyframe rather than one frame, which smears.
-    if (decoder.decodeQueueSize > 4 && !p.key) return needKey();
+
+    if (p.key) {
+      waitingKey = false;
+      backlogFrames = 0;
+    } else if (waitingKey) {
+      // If waiting for keyframe for more than 1200 ms, resume delta decoding
+      // so screen doesn't stay frozen during Wi-Fi delays.
+      if (performance.now() - askedKey > 1200) {
+        waitingKey = false;
+      } else {
+        return;
+      }
+    }
+
+    // Network burst protection over Wi-Fi:
+    // WebCodecs processes bursts of 8–16 frames easily in hardware without dropping.
+    // Only flag genuine decoder overload if decodeQueueSize stays severely backlogged (>24 frames)
+    // for multiple consecutive frames.
+    if (decoder.decodeQueueSize > 24) {
+      backlogFrames++;
+      if (backlogFrames > 8 && !p.key) {
+        backlogFrames = 0;
+        return needKey(true);
+      }
+    } else {
+      backlogFrames = Math.max(0, backlogFrames - 1);
+    }
+
     let chunk = data;
     if (p.key && config) {
       chunk = new Uint8Array(config.length + data.length);
       chunk.set(config, 0);
       chunk.set(data, config.length);
     }
-    waitingKey = false;
     decoder.decode(new EncodedVideoChunk({ type: p.key ? 'key' : 'delta', timestamp: p.pts, data: chunk }));
   });
 

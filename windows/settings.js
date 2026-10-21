@@ -118,7 +118,7 @@ function normalize(s) {
     phone: {
       sound: bool(ph.sound, false),
       bitrateMbps: Math.round(num(ph.bitrateMbps, 8, 2, 40)),
-      maxSize: [0, 1920, 1600, 1280, 1024].includes(ph.maxSize) ? ph.maxSize : 0,
+      maxSize: [0, 1920, 1600, 1280, 1024].includes(ph.maxSize) ? ph.maxSize : 1280,
       wallpaper: bool(ph.wallpaper, true),
     },
     macApps: { on: bool(mca.on, true) }, // The other computer's apps open here (pair.sync 'apps' in) // The Mac may open this PC's apps (it shows them only if it accepts)

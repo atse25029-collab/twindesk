@@ -551,8 +551,11 @@ class PhoneBridge extends EventEmitter {
   // Options for a new screen/app session, from settings.
   sessionOpts(kind, extra = {}) {
     const ph = this.getSettings().phone || {};
-    const base = { video: true, control: true, maxFps: 60, videoBitRate: (ph.bitrateMbps || 8) * 1000000 };
-    if (kind === 'screen') return { ...base, audio: !!ph.sound, maxSize: ph.maxSize || 0, stayAwake: true, ...extra };
+    // Use configured maxSize, or default to 1280 (optimizes encoding latency and bandwidth
+    // while providing 1.4x retina supersampling in the standard ~400x860 window).
+    const maxSize = ph.maxSize != null ? ph.maxSize : 1280;
+    const base = { video: true, control: true, maxFps: 60, videoBitRate: (ph.bitrateMbps || 8) * 1000000, maxSize };
+    if (kind === 'screen') return { ...base, audio: !!ph.sound, stayAwake: true, ...extra };
     return { ...base, audio: false, flex: true, ...extra };
   }
 
